@@ -1,0 +1,130 @@
+import random
+
+
+class Die:
+    def __init__(self):
+        self.sides = ["L", "R", "C", ".", ".", "."]
+
+    def roll(self):
+        return random.choice(self.sides)
+
+
+class Player:
+    def __init__(self, name):
+        self.name = name
+        self.chips = 3
+
+    def add_chip(self):
+        self.chips += 1
+
+    def remove_chip(self):
+        if self.chips > 0:
+            self.chips -= 1
+
+    def __str__(self):
+        return f"{self.name}: {self.chips} chips"
+
+
+class Pot:
+    def __init__(self):
+        self.chips = 0
+
+    def add_chip(self):
+        self.chips += 1
+
+
+class GameEngine:
+    def __init__(self, num_players):
+        self.players = []
+        self.die = Die()
+        self.pot = Pot()
+
+        for i in range(num_players):
+            name = input(f"Enter name for Player {i + 1}: ")
+            self.players.append(Player(name))
+
+    def active_players(self):
+        return sum(1 for player in self.players if player.chips > 0)
+
+    def take_turn(self, player_index):
+        player = self.players[player_index]
+
+        if player.chips == 0:
+            return
+
+        dice_to_roll = min(3, player.chips)
+
+        print(f"\n{player.name}'s Turn")
+        print(f"Rolling {dice_to_roll} dice...")
+
+        for _ in range(dice_to_roll):
+            result = self.die.roll()
+            print("Rolled:", result)
+
+            if result == "L":
+                left = (player_index - 1) % len(self.players)
+
+                if player.chips > 0:
+                    player.remove_chip()
+                    self.players[left].add_chip()
+
+            elif result == "R":
+                right = (player_index + 1) % len(self.players)
+
+                if player.chips > 0:
+                    player.remove_chip()
+                    self.players[right].add_chip()
+
+            elif result == "C":
+                if player.chips > 0:
+                    player.remove_chip()
+                    self.pot.add_chip()
+
+    def display_status(self):
+        print("\nCurrent Status")
+        print("-" * 25)
+
+        for player in self.players:
+            print(player)
+
+        print(f"Center Pot: {self.pot.chips} chips")
+
+    def get_winner(self):
+        for player in self.players:
+            if player.chips > 0:
+                return player
+
+    def play_game(self):
+        round_num = 1
+
+        while self.active_players() > 1:
+            print(f"\n===== ROUND {round_num} =====")
+
+            for i in range(len(self.players)):
+                self.take_turn(i)
+
+            self.display_status()
+            round_num += 1
+
+        winner = self.get_winner()
+
+        print("\n===== GAME OVER =====")
+        print(f"Winner: {winner.name}")
+        print(f"Center Pot Prize: {self.pot.chips} chips")
+        print(f"Total Chips Won: {winner.chips + self.pot.chips}")
+
+
+# Main Program
+print("LCR Game Simulation")
+
+while True:
+    try:
+        num_players = int(input("Enter number of players (3 or more): "))
+        if num_players >= 3:
+            break
+        print("Must have at least 3 players.")
+    except ValueError:
+        print("Enter a valid number.")
+
+game = GameEngine(num_players)
+game.play_game()

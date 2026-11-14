@@ -1,0 +1,141 @@
+import random
+
+
+# -------------------------
+# DIE CLASS
+# -------------------------
+class Die:
+    def roll(self):
+        return random.randint(1, 6)
+
+
+# -------------------------
+# DICE SET CLASS
+# -------------------------
+class DiceSet:
+    def __init__(self):
+        self.dice = [Die() for _ in range(5)]
+
+    def roll(self, number):
+        return [die.roll() for die in self.dice[:number]]
+
+
+# -------------------------
+# PLAYER CLASS
+# -------------------------
+class Player:
+    def __init__(self, name):
+        self.name = name
+        self.score = 0
+
+
+# -------------------------
+# GAME CLASS
+# -------------------------
+class ShipCaptainCrewGame:
+    def __init__(self):
+        self.players = []
+
+    def add_players(self):
+        num_players = int(input("Enter number of players: "))
+
+        for i in range(num_players):
+            name = input(f"Enter name for Player {i + 1}: ")
+            self.players.append(Player(name))
+
+    def play_turn(self, player):
+        print(f"\n{player.name}'s Turn")
+
+        ship = False
+        captain = False
+        crew = False
+
+        cargo = []
+        dice_remaining = 5
+
+        dice_set = DiceSet()
+
+        for roll_num in range(1, 4):
+            roll = dice_set.roll(dice_remaining)
+
+            print(f"Roll {roll_num}: {roll}")
+
+            i = 0
+
+            while i < len(roll):
+
+                value = roll[i]
+
+                if not ship and value == 6:
+                    ship = True
+                    roll.pop(i)
+                    dice_remaining -= 1
+                    continue
+
+                elif ship and not captain and value == 5:
+                    captain = True
+                    roll.pop(i)
+                    dice_remaining -= 1
+                    continue
+
+                elif ship and captain and not crew and value == 4:
+                    crew = True
+                    roll.pop(i)
+                    dice_remaining -= 1
+                    continue
+
+                i += 1
+
+            if ship and captain and crew:
+                cargo = roll
+
+                if roll_num < 3:
+                    print("Ship, Captain, and Crew secured!")
+                    print("Cargo dice may be rerolled.")
+                else:
+                    print("Final Cargo:", cargo)
+
+        if ship and captain and crew:
+            player.score = sum(cargo)
+        else:
+            player.score = 0
+
+        print(f"{player.name}'s Score: {player.score}")
+
+    def determine_winner(self):
+        highest = max(player.score for player in self.players)
+
+        winners = [
+            player for player in self.players
+            if player.score == highest
+        ]
+
+        if len(winners) == 1:
+            print("\n=== WINNER ===")
+            print(
+                f"{winners[0].name} wins with a score of {highest}"
+            )
+        else:
+            print("\nTie between:")
+            for player in winners:
+                print(player.name)
+
+    def play_game(self):
+        self.add_players()
+
+        for player in self.players:
+            self.play_turn(player)
+
+        print("\n=== FINAL SCORES ===")
+
+        for player in self.players:
+            print(f"{player.name}: {player.score}")
+
+        self.determine_winner()
+
+
+# -------------------------
+# MAIN PROGRAM
+# -------------------------
+game = ShipCaptainCrewGame()
+game.play_game()

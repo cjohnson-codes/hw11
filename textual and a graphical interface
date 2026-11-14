@@ -1,0 +1,231 @@
+from abc import ABC, abstractmethod
+import random
+import tkinter as tk
+from tkinter.scrolledtext import ScrolledText
+
+
+# -------------------------
+# INTERFACE
+# -------------------------
+class GameView(ABC):
+
+    @abstractmethod
+    def display_message(self, message):
+        pass
+
+    @abstractmethod
+    def display_status(self, players, pot):
+        pass
+
+    @abstractmethod
+    def display_winner(self, winner, pot):
+        pass
+
+
+# -------------------------
+# TEXT INTERFACE
+# -------------------------
+class TextView(GameView):
+
+    def display_message(self, message):
+        print(message)
+
+    def display_status(self, players, pot):
+        print("\nCurrent Status")
+        for player in players:
+            print(f"{player.name}: {player.chips} chips")
+        print(f"Center Pot: {pot.chips}")
+
+    def display_winner(self, winner, pot):
+        print("\nGAME OVER")
+        print(f"Winner: {winner.name}")
+        print(f"Prize from Pot: {pot.chips} chips")
+
+
+# -------------------------
+# GUI INTERFACE
+# -------------------------
+class GUIView(GameView):
+
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("LCR Game")
+
+        self.output = ScrolledText(self.root, width=60, height=25)
+        self.output.pack()
+
+    def display_message(self, message):
+        self.output.insert(tk.END, message + "\n")
+        self.output.update()
+
+    def display_status(self, players, pot):
+        self.output.insert(tk.END, "\nCurrent Status\n")
+        for player in players:
+            self.output.insert(
+                tk.END,
+                f"{player.name}: {player.chips} chips\n"
+            )
+        self.output.insert(
+            tk.END,
+            f"Center Pot: {pot.chips}\n"
+        )
+        self.output.update()
+
+    def display_winner(self, winner, pot):
+        self.output.insert(
+            tk.END,
+            f"\nWinner: {winner.name}\nPrize: {pot.chips} chips\n"
+        )
+        self.output.update()
+        self.root.mainloop()
+
+
+# -------------------------
+# DIE CLASS
+# -------------------------
+class Die:
+
+    def __init__(self):
+        self.sides = ["L", "R", "C", ".", ".", "."]
+
+    def roll(self):
+        return random.choice(self.sides)
+
+
+# -------------------------
+# PLAYER CLASS
+# -------------------------
+class Player:
+
+    def __init__(self, name):
+        self.name = name
+        self.chips = 3
+
+    def add_chip(self):
+        self.chips += 1
+
+    def remove_chip(self):
+        if self.chips > 0:
+            self.chips -= 1
+
+
+# -------------------------
+# POT CLASS
+# -------------------------
+class Pot:
+
+    def __init__(self):
+        self.chips = 0
+
+    def add_chip(self):
+        self.chips += 1
+
+
+# -------------------------
+# GAME ENGINE
+# -------------------------
+class GameEngine:
+
+    def __init__(self, player_names, view):
+        self.view = view
+        self.players = [Player(name) for name in player_names]
+        self.die = Die()
+        self.pot = Pot()
+
+    def active_players(self):
+        count = 0
+        for player in self.players:
+            if player.chips > 0:
+                count += 1
+        return count
+
+    def take_turn(self, index):
+        player = self.players[index]
+
+        if player.chips == 0:
+            return
+
+        dice = min(player.chips, 3)
+
+        self.view.display_message(
+            f"\n{player.name} rolls {dice} dice"
+        )
+
+        for _ in range(dice):
+
+            result = self.die.roll()
+
+            self.view.display_message(
+                f"Rolled {result}"
+            )
+
+            if result == "L":
+                left = (index - 1) % len(self.players)
+
+                player.remove_chip()
+                self.players[left].add_chip()
+
+            elif result == "R":
+                right = (index + 1) % len(self.players)
+
+                player.remove_chip()
+                self.players[right].add_chip()
+
+            elif result == "C":
+                player.remove_chip()
+                self.pot.add_chip()
+
+    def play(self):
+
+        round_number = 1
+
+        while self.active_players() > 1:
+
+            self.view.display_message(
+                f"\n===== ROUND {round_number} ====="
+            )
+
+            for i in range(len(self.players)):
+                self.take_turn(i)
+
+            self.view.display_status(
+                self.players,
+                self.pot
+            )
+
+            round_number += 1
+
+        for player in self.players:
+            if player.chips > 0:
+                winner = player
+                break
+
+        self.view.display_winner(
+            winner,
+            self.pot
+        )
+
+
+# -------------------------
+# MAIN
+# -------------------------
+choice = input(
+    "Choose Interface (text/gui): "
+).lower()
+
+if choice == "gui":
+    view = GUIView()
+else:
+    view = TextView()
+
+num_players = int(input("Number of Players: "))
+
+names = []
+
+for i in range(num_players):
+    names.append(
+        input(f"Player {i+1} Name: ")
+    )
+
+game = GameEngine(names, view)
+game.play()
